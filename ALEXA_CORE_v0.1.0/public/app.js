@@ -4,9 +4,55 @@ const sessionId=localStorage.getItem('core-session')||crypto.randomUUID();localS
 function voiceState(state,msg){mic.dataset.state=state;result.textContent=msg}
 async function loadDevices(){const r=await fetch('/api/devices');const d=await r.json();$('#devices').innerHTML=d.devices.map(x=>`<article class="device ${x.power?'on':''}"><small>${x.type==='light'?'ILUMINAÇÃO':x.type}</small><h3>${x.name}</h3><div class="state">${x.power?'LIGADA':'DESLIGADA'}</div><small>Brilho: ${x.brightness}%</small></article>`).join('')}
 async function send(text=input.value){text=text.trim();if(!text)return;voiceState('processing','Processando comando…');const r=await fetch('/api/command',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text,sessionId})});const d=await r.json();result.textContent=d.ok?`${d.speech}\n${d.actions.map(a=>`• ${a.type.toUpperCase()} → ${a.target}${a.value!=null?` (${a.value}%)`:''}`).join('\n')}`:(d.error||'Não entendi.');mic.dataset.state='idle';loadDevices()}
-$('#send').onclick=()=>send();input.onkeydown=e=>{if(e.key==='Enter')send()};$('#refresh').onclick=loadDevices;$('#reset').onclick=async()=>{await fetch('/api/session/reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sessionId})});result.textContent='Contexto limpo.'};document.querySelectorAll('[data-example]').forEach(b=>b.onclick=()=>{input.value=b.dataset.example;send()});
-const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null,listening=false,timer=null;
-async function checkMicrophone(){if(!navigator.mediaDevices?.getUserMedia)return true;try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});stream.getTracks().forEach(t=>t.stop());return true}catch(e){voiceState('error','Permissão do microfone negada. Libere o acesso no Chrome.');return false}}
-function createRecognition(){const r=new SpeechRecognition();r.lang='pt-BR';r.continuous=false;r.interimResults=true;r.maxAlternatives=1;r.onstart=()=>{listening=true;voiceState('listening','Ouvindo… fale agora');clearTimeout(timer);timer=setTimeout(()=>{try{r.abort()}catch(e){}},10000)};r.onresult=e=>{let text='';for(let i=e.resultIndex;i<e.results.length;i++){text+=e.results[i][0].transcript}if(text)input.value=text;};r.onend=()=>{listening=false;clearTimeout(timer);input.value.trim()?send(input.value):voiceState('idle','Nenhuma fala detectada.')};r.onerror=e=>{listening=false;clearTimeout(timer);voiceState('error',`Falha de voz: ${e.error}`)};return r}
-if(SpeechRecognition){mic.onclick=async()=>{if(listening){try{rec.abort()}catch(e){}return}if(!await checkMicrophone())return;input.value='';rec=createRecognition();try{rec.start()}catch(e){voiceState('error','Não foi possível iniciar o microfone.')}}}else{mic.disabled=true;mic.title='Reconhecimento de voz não suportado'}
-if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});loadDevices().catch(()=>$('#status').textContent='OFFLINE');
+$('#send').onclick=()=>send();input.onkeydown=e=>{if(e.key==='Enter')send()};$('#refresh').onclick=loadDevices;
+$('#reset').onclick=async()=>{await fetch('/api/session/reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sessionId})});result.textContent='Contexto limpo.'};
+document.querySelectorAll('[data-example]').forEach(b=>b.onclick=()=>{input.value=b.dataset.example;send()});
+
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null,listening=false,timer=null,voiceText='';
+
+function createRecognition(){
+ const r=new SpeechRecognition();
+ r.lang='pt-BR';
+ r.continuous=false;
+ r.interimResults=true;
+ r.maxAlternatives=3;
+ r.onstart=()=>{listening=true;voiceText='';voiceState('listening','Ouvindo… fale agora');clearTimeout(timer);timer=setTimeout(()=>{try{r.stop()}catch(e){}},12000)};
+ r.onresult=e=>{
+   let text='';
+   for(let i=e.resultIndex;i<e.results.length;i++){
+     text+=e.results[i][0].transcript;
+   }
+   if(text.trim()) { voiceText=text; input.value=text; }
+ };
+ r.onspeechend=()=>{try{r.stop()}catch(e){}};
+ r.onend=()=>{
+   listening=false;
+   clearTimeout(timer);
+   if(voiceText.trim()) send(voiceText);
+   else voiceState('idle','Nenhuma fala detectada. Tente novamente.');
+ };
+ r.onerror=e=>{
+   listening=false;
+   clearTimeout(timer);
+   if(e.error!=='aborted') voiceState('error',`Falha de voz: ${e.error}`);
+ };
+ return r;
+}
+
+if(SpeechRecognition){
+ mic.onclick=()=>{
+   if(listening){try{rec.stop()}catch(e){}return;}
+   input.value='';
+   try{
+    if(rec){try{rec.abort()}catch(e){}}
+    rec=createRecognition();
+    rec.start();
+   }catch(e){voiceState('error','Não foi possível iniciar o microfone.')}
+ };
+}else{
+ mic.disabled=true;
+ mic.title='Reconhecimento de voz não suportado';
+}
+
+if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+loadDevices().catch(()=>$('#status').textContent='OFFLINE');
