@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>ALEXA CORE</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <small>v0.1.0</small>
+        <h1>ALEXA CORE</h1>
+        <p>Comandos compostos e contexto contínuo</p>
+      </div>
+      <span id="status" class="badge">ONLINE</span>
+    </header>
+
+    <section class="command-card">
+      <label for="command">Comando</label>
+      <div class="command-row">
+        <input id="command" autocomplete="off" placeholder="Apague a sala e acenda o corredor e o quarto" />
+        <button id="mic" title="Falar">🎙️</button>
+        <button id="send">Executar</button>
+      </div>
+      <div class="examples">
+        <button data-example="apague a sala e acenda o corredor e o quarto">3 ações</button>
+        <button data-example="acenda a cozinha e a varanda">2 cômodos</button>
+        <button data-example="deixe o quarto em 30 por cento">Brilho</button>
+        <button data-example="daqui a 1 minuto apague tudo menos o corredor">Agendar</button>
+      </div>
+      <div id="result" class="result">Pronto para testar.</div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Casa simulada</h2>
+        <button id="refresh">Atualizar</button>
+      </div>
+      <div id="devices" class="grid"></div>
+    </section>
+
+    <section class="info">
+      <h2>Modo conversa</h2>
+      <p>A sessão mantém o último contexto. Depois de “acenda o corredor”, experimente “a cozinha também”.</p>
+      <button id="reset">Limpar contexto</button>
+    </section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

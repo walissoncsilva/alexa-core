@@ -1,0 +1,58 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "modo comando",
+      "intents": [
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        {
+          "name": "CompositeCommandIntent",
+          "slots": [
+            { "name": "action", "type": "ACTION_TYPE" },
+            { "name": "room1", "type": "ROOM_TYPE" },
+            { "name": "room2", "type": "ROOM_TYPE" },
+            { "name": "room3", "type": "ROOM_TYPE" },
+            { "name": "brightness", "type": "AMAZON.NUMBER" }
+          ],
+          "samples": [
+            "{action} {room1}",
+            "{action} {room1} e {room2}",
+            "{action} {room1} e {room2} e {room3}",
+            "{action} {room1} em {brightness} por cento"
+          ]
+        },
+        {
+          "name": "FreeCommandIntent",
+          "slots": [{ "name": "command", "type": "AMAZON.SearchQuery" }],
+          "samples": [
+            "execute {command}",
+            "faça {command}",
+            "comando {command}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "ACTION_TYPE",
+          "values": [
+            { "name": { "value": "acenda", "synonyms": ["ligue", "acender", "ligar"] } },
+            { "name": { "value": "apague", "synonyms": ["desligue", "apagar", "desligar"] } },
+            { "name": { "value": "deixe", "synonyms": ["coloque", "ajuste"] } }
+          ]
+        },
+        {
+          "name": "ROOM_TYPE",
+          "values": [
+            { "name": { "value": "sala", "synonyms": ["sala de estar"] } },
+            { "name": { "value": "corredor", "synonyms": [] } },
+            { "name": { "value": "quarto", "synonyms": ["dormitório"] } },
+            { "name": { "value": "cozinha", "synonyms": [] } },
+            { "name": { "value": "varanda", "synonyms": [] } },
+            { "name": { "value": "banheiro", "synonyms": [] } }
+          ]
+        }
+      ]
+    }
+  }
+}

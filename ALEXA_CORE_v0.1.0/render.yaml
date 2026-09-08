@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: alexa-core
+    runtime: node
+    plan: free
+    buildCommand: echo "Sem dependencias externas"
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
