@@ -1,5 +1,5 @@
 :root { font-family: Inter, system-ui, Arial, sans-serif; color-scheme: dark; }
-* { box-sizing: border-box; }
+* { box-sizing:border-box; }
 body { margin:0; background:#0b1020; color:#eef2ff; min-height:100vh; }
 main { max-width:980px; margin:auto; padding:24px; }
 header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:28px; }
@@ -14,7 +14,10 @@ input { width:100%; min-width:0; background:#080d19; border:1px solid #34415f; b
 input:focus { border-color:#60a5fa; }
 button { border:0; border-radius:11px; background:#2563eb; color:white; padding:12px 15px; font-weight:750; cursor:pointer; }
 button:active { transform:translateY(1px); }
-#mic { font-size:20px; background:#334155; }
+#mic { font-size:20px; background:#334155; transition:.2s; }
+#mic[data-state="listening"] { background:#dc2626; box-shadow:0 0 18px rgba(220,38,38,.5); }
+#mic[data-state="processing"] { background:#ca8a04; }
+#mic[data-state="error"] { background:#991b1b; }
 .examples { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .examples button,#refresh,#reset { background:#222d45; color:#dbeafe; }
 .result { margin-top:14px; background:#080d19; padding:13px; border-radius:10px; min-height:46px; color:#c7d2fe; white-space:pre-wrap; }
