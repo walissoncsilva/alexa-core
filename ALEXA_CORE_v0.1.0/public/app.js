@@ -1,57 +1,10 @@
-const $ = s => document.querySelector(s);
-const input = $('#command');
-const result = $('#result');
-const sessionId = localStorage.getItem('core-session') || crypto.randomUUID();
-localStorage.setItem('core-session', sessionId);
-
-async function loadDevices() {
-  const r = await fetch('/api/devices');
-  const data = await r.json();
-  $('#devices').innerHTML = data.devices.map(d => `
-    <article class="device ${d.power ? 'on' : ''}">
-      <small>${d.type === 'light' ? 'ILUMINAÇÃO' : d.type}</small>
-      <h3>${d.name}</h3>
-      <div class="state">${d.power ? 'LIGADA' : 'DESLIGADA'}</div>
-      <small>Brilho: ${d.brightness}%</small>
-    </article>`).join('');
-}
-
-async function send(text = input.value) {
-  text = text.trim();
-  if (!text) return;
-  result.textContent = 'Interpretando…';
-  const r = await fetch('/api/command', {
-    method:'POST', headers:{'content-type':'application/json'},
-    body:JSON.stringify({ text, sessionId })
-  });
-  const data = await r.json();
-  result.textContent = data.ok
-    ? `${data.speech}\n${data.actions.map(a => `• ${a.type.toUpperCase()} → ${a.target}${a.value != null ? ` (${a.value}%)` : ''}${a.delayMs ? ' [agendado]' : ''}`).join('\n')}`
-    : data.error || data.speech || 'Não entendi.';
-  await loadDevices();
-}
-
-$('#send').onclick = () => send();
-input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
-$('#refresh').onclick = loadDevices;
-$('#reset').onclick = async () => {
-  await fetch('/api/session/reset', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({sessionId}) });
-  result.textContent = 'Contexto limpo.';
-};
-for (const b of document.querySelectorAll('[data-example]')) b.onclick = () => { input.value = b.dataset.example; send(b.dataset.example); };
-
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-  const rec = new SpeechRecognition();
-  rec.lang = 'pt-BR';
-  rec.interimResults = false;
-  rec.onresult = e => { input.value = e.results[0][0].transcript; send(input.value); };
-  rec.onerror = () => { result.textContent = 'O navegador não liberou o reconhecimento de voz. Use o campo de texto ou a Alexa.'; };
-  $('#mic').onclick = () => { result.textContent = 'Ouvindo…'; rec.start(); };
-} else {
-  $('#mic').disabled = true;
-  $('#mic').title = 'Reconhecimento de voz não suportado neste navegador';
-}
-
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
-loadDevices().catch(() => { $('#status').textContent = 'OFFLINE'; });
+const $=s=>document.querySelector(s);
+const input=$('#command'),result=$('#result'),mic=$('#mic');
+const sessionId=localStorage.getItem('core-session')||crypto.randomUUID();localStorage.setItem('core-session',sessionId);
+function voiceState(state,msg){mic.dataset.state=state;result.textContent=msg}
+async function loadDevices(){const r=await fetch('/api/devices');const d=await r.json();$('#devices').innerHTML=d.devices.map(x=>`<article class="device ${x.power?'on':''}"><small>${x.type==='light'?'ILUMINAÇÃO':x.type}</small><h3>${x.name}</h3><div class="state">${x.power?'LIGADA':'DESLIGADA'}</div><small>Brilho: ${x.brightness}%</small></article>`).join('')}
+async function send(text=input.value){text=text.trim();if(!text)return;voiceState('processing','Processando comando…');const r=await fetch('/api/command',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text,sessionId})});const d=await r.json();result.textContent=d.ok?`${d.speech}\n${d.actions.map(a=>`• ${a.type.toUpperCase()} → ${a.target}${a.value!=null?` (${a.value}%)`:''}`).join('\n')}`:(d.error||'Não entendi.');mic.dataset.state='idle';loadDevices()}
+$('#send').onclick=()=>send();input.onkeydown=e=>{if(e.key==='Enter')send()};$('#refresh').onclick=loadDevices;$('#reset').onclick=async()=>{await fetch('/api/session/reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sessionId})});result.textContent='Contexto limpo.'};document.querySelectorAll('[data-example]').forEach(b=>b.onclick=()=>{input.value=b.dataset.example;send()});
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;let rec,listening=false,timer;
+if(SpeechRecognition){rec=new SpeechRecognition();rec.lang='pt-BR';rec.continuous=false;rec.interimResults=true;rec.onstart=()=>{listening=true;voiceState('listening','Ouvindo… toque novamente para cancelar');timer=setTimeout(()=>rec.stop(),8000)};rec.onresult=e=>{input.value=[...e.results].map(r=>r[0].transcript).join('');clearTimeout(timer)};rec.onend=()=>{listening=false;clearTimeout(timer);input.value?send():voiceState('idle','Nenhuma fala detectada.')};rec.onerror=e=>{listening=false;clearTimeout(timer);voiceState('error',e.error==='not-allowed'?'Permissão do microfone negada.':'Erro no reconhecimento de voz.')};mic.onclick=()=>{if(listening){rec.stop();return}input.value='';try{rec.start()}catch(e){voiceState('error','Não foi possível iniciar o microfone.')}}}else{mic.disabled=true;mic.title='Reconhecimento de voz não suportado'}
+if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});loadDevices().catch(()=>$('#status').textContent='OFFLINE');
